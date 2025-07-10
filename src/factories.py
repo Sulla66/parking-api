@@ -1,6 +1,6 @@
 import factory
 from factory.alchemy import SQLAlchemyModelFactory
-from .models import db, Client, Parking
+from src.models import db, Client, Parking
 from faker import Faker
 
 fake = Faker()

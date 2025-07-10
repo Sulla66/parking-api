@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-from .models import db, Client, Parking, ClientParking
+from src.models import db, Client, Parking, ClientParking
 from datetime import datetime
 
 
@@ -82,19 +82,21 @@ def create_app():
     @app.route('/client_parkings', methods=['DELETE'])
     def exit_parking():
         data = request.get_json()
-        client = Client.query.get_or_404(data['client_id'])
-        parking = Parking.query.get_or_404(data['parking_id'])
+
+        # Находим активную запись (где time_out is NULL)
         client_parking = ClientParking.query.filter_by(
-            client_id=client.id,
-            parking_id=parking.id,
+            client_id=data['client_id'],
+            parking_id=data['parking_id'],
             time_out=None
         ).first_or_404()
 
-        if not client.credit_card:
-            return jsonify({'error': 'No credit card for payment'}), 400
-
-        client_parking.time_out = datetime.now()
+        # Освобождаем место
+        parking = Parking.query.get_or_404(data['parking_id'])
         parking.count_available_places += 1
+
+        # Фиксируем время выезда
+        client_parking.time_out = datetime.now()
+
         db.session.commit()
         return jsonify({'message': 'Payment processed successfully'}), 200
 
