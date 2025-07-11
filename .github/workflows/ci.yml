@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: main
+    branches: [main]
 
 jobs:
   test:
@@ -18,25 +18,15 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Verify Python version
-        run: python --version
-
-      - name: Cache pip packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install black isort flake8 pytest  # если нет requirements.txt
+          pip install black isort flake8 pytest
+          # или если у вас есть requirements.txt:
+          # pip install -r requirements.txt
 
       - name: Run Black formatter
-        run: black --check src/ tests/
+        run: black --check src/ tests/  # исправлено testx/ на tests/
 
       - name: Run isort
         run: isort --check --profile black src/ tests/
