@@ -26,10 +26,9 @@ jobs:
           # pip install -r requirements.txt
 
       - name: Run Black formatter
-        run: black --check src/ tests/  # исправлено testx/ на tests/
-
-      - name: Run isort
-        run: isort --check --profile black src/ tests/
+        run: |
+          black src/ tests/
+          git diff --exit-codeп
 
       - name: Run flake8
         run: flake8 src/ tests/
