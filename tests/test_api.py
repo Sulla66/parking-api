@@ -33,7 +33,9 @@ def test_get_methods(client, route, expected_fields):
     assert response.status_code == 200
     if isinstance(response.json, list):
         assert all(
-            field in item for item in response.json() for field in expected_fields
+            field in item
+            for item in response.json()
+            for field in expected_fields
         )
     else:
         assert all(field in response.json for field in expected_fields)
