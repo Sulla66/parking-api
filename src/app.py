@@ -82,14 +82,8 @@ def create_app():
         if not all(k in data for k in ["client_id", "parking_id"]):
             return jsonify({"error": "Missing required fields"}), 400
 
-        client = (
-            db.session.query(db.models.Client)
-            .get_or_404(data["client_id"])
-        )
-        parking = (
-            db.session.query(db.models.Parking)
-            .get_or_404(data["parking_id"])
-        )
+        client = db.session.query(db.models.Client).get_or_404(data["client_id"])
+        parking = db.session.query(db.models.Parking).get_or_404(data["parking_id"])
 
         if not parking.opened:
             return jsonify({"error": "Parking is closed"}), 400
@@ -121,10 +115,7 @@ def create_app():
             .first_or_404()
         )
 
-        parking = (
-            db.session.query(db.models.Parking)
-            .get_or_404(data["parking_id"])
-        )
+        parking = db.session.query(db.models.Parking).get_or_404(data["parking_id"])
         parking.count_available_places += 1
         client_parking.time_out = datetime.now()
 

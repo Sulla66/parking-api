@@ -66,9 +66,7 @@ def _create_test_data(db):
     db.session.commit()
 
     client_parking = ClientParking(
-        client_id=test_client.id,
-        parking_id=test_parking.id,
-        time_in=datetime.now()
+        client_id=test_client.id, parking_id=test_parking.id, time_in=datetime.now()
     )
     db.session.add(client_parking)
     db.session.commit()
