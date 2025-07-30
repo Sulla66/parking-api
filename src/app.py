@@ -1,131 +1,88 @@
-from datetime import datetime
+from typing import Any, Dict, Tuple
 
 from flask import Flask, jsonify, request
+from werkzeug.wrappers import Response
 
-from src.models import db
+from .models import Client, ClientParking, Parking, db
 
 
-def create_app():
+def create_app() -> Flask:
     app = Flask(__name__)
-    app.config.update(
-        {
-            "SQLALCHEMY_DATABASE_URI": "sqlite:///parking.db",
-            "SQLALCHEMY_TRACK_MODIFICATIONS": False,
-            "JSONIFY_PRETTYPRINT_REGULAR": True,
-            "WTF_CSRF_ENABLED": False,
-        }
-    )
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config["PROPAGATE_EXCEPTIONS"] = True
+
     db.init_app(app)
 
-    def _client_to_dict(client):
-        """Конвертирует объект Client в словарь."""
-        return {
-            "id": client.id,
-            "name": client.name,
-            "surname": client.surname,
-            "credit_card": client.credit_card,
-            "car_number": client.car_number,
-        }
+    @app.route("/clients", methods=["GET", "POST"])
+    def handle_clients() -> Tuple[Response, int]:
+        if request.method == "GET":
+            clients = db.session.query(Client).all()
+            return jsonify({"clients": [client.to_dict() for client in clients]}), 200
 
-    @app.route("/clients", methods=["GET"])
-    def get_clients():
-        """Получение списка всех клиентов."""
-        clients = db.session.query(db.models.Client).all()
-        return jsonify([_client_to_dict(c) for c in clients])
-
-    @app.route("/clients/<int:client_id>", methods=["GET"])
-    def get_client(client_id):
-        """Получение конкретного клиента по ID."""
-        client = db.session.query(db.models.Client).get_or_404(client_id)
-        return jsonify(_client_to_dict(client))
-
-    @app.route("/clients", methods=["POST"])
-    def create_client():
-        """Создание нового клиента."""
         data = request.get_json()
-        if not all(k in data for k in ["name", "surname"]):
-            return jsonify({"error": "Missing required fields"}), 400
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
 
-        client = db.models.Client(
-            name=data["name"],
-            surname=data["surname"],
-            credit_card=data.get("credit_card"),
-            car_number=data.get("car_number"),
-        )
-        db.session.add(client)
-        db.session.commit()
-        return jsonify({"id": client.id}), 201
+        try:
+            client = Client(name=data["name"], email=data["email"])
+            db.session.add(client)
+            db.session.commit()
+            return jsonify(client.to_dict()), 201
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 400
 
     @app.route("/parkings", methods=["POST"])
-    def create_parking():
-        """Создание новой парковки."""
+    def handle_parkings() -> Tuple[Response, int]:
         data = request.get_json()
-        if not all(k in data for k in ["address", "count_places"]):
-            return jsonify({"error": "Missing required fields"}), 400
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
 
-        parking = db.models.Parking(
-            address=data["address"],
-            opened=data.get("opened", True),
-            count_places=data["count_places"],
-            count_available_places=data.get(
-                "count_available_places", data["count_places"]
-            ),
-        )
-        db.session.add(parking)
-        db.session.commit()
-        return jsonify({"id": parking.id}), 201
+        try:
+            parking = Parking(
+                number=data["number"],
+                address=data["address"],
+                count_places=data["count_places"],
+            )
+            db.session.add(parking)
+            db.session.commit()
+            return jsonify(parking.to_dict()), 201
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 400
 
     @app.route("/client_parkings", methods=["POST"])
-    def enter_parking():
-        """Регистрация въезда на парковку."""
+    def handle_client_parkings() -> Tuple[Response, int]:
         data = request.get_json()
-        if not all(k in data for k in ["client_id", "parking_id"]):
-            return jsonify({"error": "Missing required fields"}), 400
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
 
-        client = db.session.query(db.models.Client).get_or_404(
-            data["client_id"]
-        )
-        parking = db.session.query(db.models.Parking).get_or_404(
-            data["parking_id"]
-        )
-
-        if not parking.opened:
-            return jsonify({"error": "Parking is closed"}), 400
-        if parking.count_available_places <= 0:
-            return jsonify({"error": "No available places"}), 400
-
-        parking.count_available_places -= 1
-        client_parking = db.models.ClientParking(
-            client_id=client.id, parking_id=parking.id, time_in=datetime.now()
-        )
-        db.session.add(client_parking)
-        db.session.commit()
-        return jsonify({"id": client_parking.id}), 201
-
-    @app.route("/client_parkings", methods=["DELETE"])
-    def exit_parking():
-        """Регистрация выезда с парковки."""
-        data = request.get_json()
-        if not all(k in data for k in ["client_id", "parking_id"]):
-            return jsonify({"error": "Missing required fields"}), 400
-
-        client_parking = (
-            db.session.query(db.models.ClientParking)
-            .filter_by(
-                client_id=data["client_id"],
-                parking_id=data["parking_id"],
-                time_out=None,
+        try:
+            client_parking = ClientParking(
+                client_id=data["client_id"], parking_id=data["parking_id"]
             )
-            .first_or_404()
-        )
+            db.session.add(client_parking)
+            db.session.commit()
+            return jsonify(client_parking.to_dict()), 201
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 400
 
-        parking = db.session.query(db.models.Parking).get_or_404(
-            data["parking_id"]
-        )
-        parking.count_available_places += 1
-        client_parking.time_out = datetime.now()
+    @app.route("/clients/<int:client_id>", methods=["GET"])
+    def get_client(client_id: int) -> Tuple[Response, int]:
+        client = db.session.query(Client).get(client_id)
+        if not client:
+            return jsonify({"error": "Client not found"}), 404
 
-        db.session.commit()
-        return jsonify({"message": "Success"}), 200
+        return jsonify(client.to_dict()), 200
 
     return app
+
+
+app = create_app()
+
+if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
+    app.run()
