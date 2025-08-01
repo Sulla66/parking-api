@@ -3,8 +3,15 @@ from typing import TYPE_CHECKING, Any, Dict
 
 from email_validator import EmailNotValidError, validate_email
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Integer, String,
-                        UniqueConstraint)
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship, validates
 
 db = SQLAlchemy()
