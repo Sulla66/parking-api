@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Any, Dict, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict
 
 from email_validator import EmailNotValidError, validate_email
 from flask_sqlalchemy import SQLAlchemy

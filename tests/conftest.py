@@ -1,5 +1,6 @@
+from typing import Any, Generator
+
 import pytest
-from typing import Generator, Any
 from flask import Flask
 from flask.testing import FlaskClient
 

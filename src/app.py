@@ -1,7 +1,10 @@
 from __future__ import annotations
-from typing import Tuple, Any, Dict, Optional
+
+from typing import Any, Dict, Optional, Tuple
+
 from flask import Flask, jsonify, request
 from werkzeug.wrappers import Response
+
 from .models import Client, ClientParking, Parking, db
 
 
